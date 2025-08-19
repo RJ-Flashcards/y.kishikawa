@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flashcard App - Multi Day</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Vocabulary Flashcards</h1>
+
+  <label for="daySelector">Select Day:</label>
+  <select id="daySelector"></select>
+
+  <div class="flashcard" id="flashcard">
+    <div class="flashcard-inner" id="flashcardInner">
+      <div class="flashcard-front" id="cardFront"></div>
+      <div class="flashcard-back" id="cardBack"></div>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button id="prevBtn">Back</button>
+    <button id="nextBtn">Next</button>
+  </div>
+  
+  <img id="logo" src="logo.png" alt="Logo">
+
+  <script>
+    // 1) Map tab names to their GIDs
+    const sheetGIDs = {
+      "Day 1": "0",
+      "Day 2": "852548783",
+      "Day 3": "126894906",
+      "Day 4": "1761125923",
+      "Day 5": "1844825717",
+      "Day 6": "534178421",
+      "Day 7": "876454039",
+      "Day 8": "1618830889",
+      "Day 9": "1258211448",
+      "Day 10": "1303355796",
+      "Day 11": "1650085929",
+      "Day 12": "458078023",
+      "Day 13": "101007692",
+      "Day 14": "1396319710",
+      "Day 15": "1344356017",
+      "Day 16": "905129722",
+      "Day 17": "1213698638",
+      "Day 18": "773486233",
+      "Day 19": "399770021",
+      "Day 20": "1887860545",
+      "Day 21": "1018851803",
+      "Day 22": "1886085882",
+      "Day 23": "909447727",
+      "Day 24": "95175758",
+      "Day 25": "1271613542",
+      "Day 26": "1793940656",
+      "Day 27": "2029826003",
+      "Day 28": "1492775333",
+      "Day 29": "2049510630",
+      "Day 30": "834192092",
+      "A-Z Word Bank": "244262932",
+      "Everyday Phrasal Verbs": "104187808",
+      "Business Phrasal Verbs": "887218085",
+      "Proverbs": "1337097424"   // <-- your renamed tab
+    };
+
+
+    // 2) Grab your UI elements
+    const dropdown  = document.getElementById("daySelector");
+    const flashcard = document.getElementById("flashcard");
+    const cardInner = document.getElementById("flashcardInner");
+    const front     = document.getElementById("cardFront");
+    const back      = document.getElementById("cardBack");
+    const prevBtn   = document.getElementById("prevBtn");
+    const nextBtn   = document.getElementById("nextBtn");
+
+    let cards = [], currentIndex = 0, isFlipped = false;
+
+    // 3) Populate the dropdown
+    for (const name in sheetGIDs) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      dropdown.appendChild(opt);
+    }
+
+    // 4) Event handlers
+    dropdown.addEventListener("change", () => loadCSV(sheetGIDs[dropdown.value]));
+    flashcard.addEventListener("click", e => {
+      if (!e.target.closest("button")) {
+        isFlipped = !isFlipped;
+        cardInner.classList.toggle("flipped", isFlipped);
+      }
+    });
+    nextBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      currentIndex = (currentIndex + 1) % cards.length;
+      displayCard();
+    });
+    prevBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+      displayCard();
+    });
+
+    // 5) Loader: inject gid, request TSV
+function loadCSV(gid) {
+  // ← paste your simplified base URL here:
+  const base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTAnLNrFJTrfe01vwbG6WYUIJAQGLWVsrdqwVmDoEuD_NfAq69P7642UaTo28W88vgqrG6soUPEiBsB/pub";
+  const url  = `${base}?gid=${gid}&single=true&output=csv`;
+
+  fetch(url)
+    .then(res => res.text())
+    .then(csv => {
+      cards = csv
+        .trim()
+        .split("\n")
+        .slice(1)
+        .map(line => {
+          const [word, def] = line.split(",");
+          return word && def ? [word.trim(), def.trim()] : null;
+        })
+        .filter(Boolean);
+
+      currentIndex = 0;
+      isFlipped = false;
+      if (cards.length) displayCard();
+      else {
+        front.textContent = "No data available.";
+        back.textContent  = "";
+        cardInner.classList.remove("flipped");
+      }
+    })
+    .catch(_ => {
+      front.textContent = "Error loading data.";
+      back.textContent  = "";
+      cardInner.classList.remove("flipped");
+    });
+}
+
+
+    // 6) Render the current card
+    function displayCard() {
+      const [word, definition] = cards[currentIndex];
+      front.textContent = word;
+      back.textContent  = definition;
+      cardInner.classList.toggle("flipped", isFlipped);
+    }
+
+    // 7) Initialize on load
+    dropdown.value = "Day 1";
+    loadCSV(sheetGIDs["Day 1"]);
+  </script>
+</body>
+</html>
